@@ -2,22 +2,34 @@
 /*global alert*/
 define([
   'jquery',
-  'mage/utils/wrapper'
+  'mage/utils/wrapper',
+  'mage/adminhtml/grid'
 ], function($, wrapper) {
   'use strict';
   return function(target) {
     return wrapper.wrap(target, function(original, config) {
       original(config);
+
       var gridJsObject = window[config.gridJsObjectName];
+      var originalRowCallback = gridJsObject.initRowCallback;
+      var selectedProducts = config.selectedProducts;
+      var categoryProducts = $H(selectedProducts);
+
+      gridJsObject.initRowCallback = function(grid, row) {
+        originalRowCallback(grid, row);
+        gridJsObject.bindSortable();
+      };
       gridJsObject.sortableUpdateCallback = function(e, s) {
         $.each(gridJsObject.rows, function() {
-          $(this).find('.col-position input').val($(this).index() + 1);
+          var row = $(this);
+          var checkbox = row.find('[type=checkbox]');
+          var position = row.find('.input-text').first();
+          position.val(row.index() + 1);
+          if (checkbox.is(':checked')) {
+            categoryProducts.set(checkbox.val(), position.val());
+          }
         });
-      };
-      var initRowCallback = gridJsObject.initRowCallback;
-      gridJsObject.initRowCallback = function(grid, row) {
-        initRowCallback(grid, row);
-        gridJsObject.bindSortable();
+        $('#in_category_products').val(Object.toJSON(categoryProducts));
       };
       gridJsObject.bindSortable();
     });
